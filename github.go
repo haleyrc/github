@@ -15,6 +15,11 @@ import (
 
 const BaseURL = "https://api.github.com"
 
+type Repository struct {
+	Name    string `json:"name"`
+	Private bool   `json:"private"`
+}
+
 type Issue struct {
 	ID     int      `json:"id"`
 	Number int      `json:"number"`
@@ -99,6 +104,36 @@ func (c *Client) Login(user, pass, id, secret string) error {
 	fmt.Println(c.Token)
 
 	return nil
+}
+
+func (c *Client) ListRepositories(org string) ([]*Repository, error) {
+	url := fmt.Sprintf("%s/orgs/%s/repos?type=all", BaseURL, org)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "token "+c.Token)
+
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+			return nil, err
+		}
+		return nil, errors.New(errResp.Message)
+	}
+
+	var repos []*Repository
+	if err := json.NewDecoder(resp.Body).Decode(&repos); err != nil {
+		return nil, err
+	}
+
+	return repos, nil
 }
 
 func (c *Client) GetIssues(org, repo string) ([]*Issue, error) {

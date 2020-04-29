@@ -1,0 +1,4 @@
+github.com/gorilla/mux v1.7.0/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
+github.com/haleyrc/gitgoing v0.0.0-20190222184715-c4af13bf8ef6 h1:TMDRq4HlDM+sMWp62c/X5kfZOZ6tfaw/iBB5yLhM8b0=
+github.com/haleyrc/gitgoing v0.0.0-20190222184715-c4af13bf8ef6/go.mod h1:lM0a7SNwXK9kn3oaLDdg2Fvvcwd9/VmQ1tViNE0fUvo=
+github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
