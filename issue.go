@@ -74,7 +74,7 @@ func (c *Client) getIssuesFromPath(path string) ([]*Issue, string, error) {
 		return nil, "", err
 	}
 
-	links := parseLinkHeader(resp.Header.Get("Link"))
+	links := c.parseLinkHeader(resp.Header.Get("Link"))
 
 	return issues, links["next"], nil
 }

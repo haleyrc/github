@@ -13,19 +13,20 @@ import (
 // TODO (RCH): Parse errors
 // {"message":"Validation Failed","errors":[{"resource":"PullRequest","code":"custom","message":"No commits between master and 20190222-test-issue-3"}],"documentation_url":"https://developer.github.com/v3/pulls/#create-a-pull-request"}
 
-const BaseURL = "https://api.github.com"
+const DefaultURL = "https://api.github.com"
 
 func NewClient() *Client {
 	return &Client{
-		hc: &http.Client{Timeout: 5 * time.Second},
+		HTTPClient: &http.Client{Timeout: 5 * time.Second},
+		URL:        DefaultURL,
 	}
 }
 
 type Client struct {
-	Debug bool
-	Token string
-
-	hc *http.Client
+	Debug      bool
+	HTTPClient *http.Client
+	Token      string
+	URL        string
 }
 
 func (c *Client) MustLogin(user, pass, id, secret string) {
@@ -74,7 +75,7 @@ func (c *Client) makeRequest(method, path string, body interface{}) (*http.Reque
 		return nil, err
 	}
 
-	url := BaseURL + path
+	url := c.URL + path
 	req, err := http.NewRequest(method, url, &buf)
 	if err != nil {
 		return nil, err
@@ -93,7 +94,7 @@ func (c *Client) makeRequest(method, path string, body interface{}) (*http.Reque
 }
 
 func (c *Client) do(req *http.Request) (*http.Response, error) {
-	resp, err := c.hc.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
