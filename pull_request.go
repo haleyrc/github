@@ -7,7 +7,7 @@ type PullRequest struct {
 }
 
 func (c *Client) CreatePullRequestFromIssue(org, repo, head string, number int) (*PullRequest, error) {
-	path := fmt.Sprintf("%s/repos/%s/%s/pulls", BaseURL, org, repo)
+	path := fmt.Sprintf("/repos/%s/%s/pulls", org, repo)
 
 	requestBody := struct {
 		Issue int    `json:"issue"`

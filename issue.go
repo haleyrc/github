@@ -36,10 +36,11 @@ type Issue struct {
 }
 
 func (c *Client) GetIssues(org, repo string) ([]*Issue, error) {
-	path := fmt.Sprintf("%s/repos/%s/%s/issues", BaseURL, org, repo)
+	path := fmt.Sprintf("/repos/%s/%s/issues", org, repo)
+	fmt.Println(path)
 
 	var issues []*Issue
-	if err := c.get(path, issues); err != nil {
+	if err := c.get(path, &issues); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +48,7 @@ func (c *Client) GetIssues(org, repo string) ([]*Issue, error) {
 }
 
 func (c *Client) GetIssue(org, repo, number string) (*Issue, error) {
-	path := fmt.Sprintf("%s/repos/%s/%s/issues/%s", BaseURL, org, repo, number)
+	path := fmt.Sprintf("/repos/%s/%s/issues/%s", org, repo, number)
 
 	var issue Issue
 	if err := c.get(path, &issue); err != nil {

@@ -22,8 +22,10 @@ func NewClient() *Client {
 }
 
 type Client struct {
+	Debug bool
 	Token string
-	hc    *http.Client
+
+	hc *http.Client
 }
 
 func (c *Client) MustLogin(user, pass, id, secret string) {
@@ -72,9 +74,14 @@ func (c *Client) makeRequest(method, path string, body interface{}) (*http.Reque
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	if c.Token != "" {
 		req.Header.Set("Authorization", "token "+c.Token)
+	}
+
+	if c.Debug {
+		dumpRequest(req)
 	}
 
 	return req, nil
@@ -86,6 +93,10 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if c.Debug {
+		dumpResponse(resp)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp ErrorResponse
@@ -128,7 +139,12 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 	return nil
 }
 
-func dump(resp *http.Response) {
+func dumpResponse(resp *http.Response) {
 	b, _ := httputil.DumpResponse(resp, true)
+	fmt.Println(string(b))
+}
+
+func dumpRequest(req *http.Request) {
+	b, _ := httputil.DumpRequest(req, true)
 	fmt.Println(string(b))
 }
