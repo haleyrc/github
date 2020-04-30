@@ -2,6 +2,7 @@ package github_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -18,14 +19,11 @@ func TestGetIssues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println(len(issues))
 
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "    ")
-	for _, issue := range issues {
-		if isEpic(issue) {
-			enc.Encode(issue)
-		}
-	}
+	enc.Encode(issues)
 }
 
 func isEpic(i *github.Issue) bool {

@@ -51,10 +51,15 @@ func (c *Client) Login(user, pass, id, secret string) error {
 	}
 	req.SetBasicAuth(user, pass)
 
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+
 	var response struct {
 		Token string `json:"token"`
 	}
-	if err := c.do(req, &response); err != nil {
+	if err := c.decode(resp, &response); err != nil {
 		return err
 	}
 
@@ -87,16 +92,21 @@ func (c *Client) makeRequest(method, path string, body interface{}) (*http.Reque
 	return req, nil
 }
 
-func (c *Client) do(req *http.Request, data interface{}) error {
+func (c *Client) do(req *http.Request) (*http.Response, error) {
 	resp, err := c.hc.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if c.Debug {
 		dumpResponse(resp)
 	}
+
+	return resp, nil
+}
+
+func (c *Client) decode(resp *http.Response, data interface{}) error {
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp ErrorResponse
@@ -119,7 +129,12 @@ func (c *Client) get(path string, result interface{}) error {
 		return err
 	}
 
-	if err := c.do(req, result); err != nil {
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+
+	if err := c.decode(resp, result); err != nil {
 		return err
 	}
 
@@ -132,7 +147,12 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 		return err
 	}
 
-	if err := c.do(req, result); err != nil {
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+
+	if err := c.decode(resp, result); err != nil {
 		return err
 	}
 
