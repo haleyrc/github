@@ -1,12 +1,15 @@
 package github
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type PullRequest struct {
 	URL string `json:"html_url"`
 }
 
-func (c *Client) CreatePullRequestFromIssue(org, repo, head string, number int) (*PullRequest, error) {
+func (c *Client) CreatePullRequestFromIssue(ctx context.Context, org, repo, head string, number int) (*PullRequest, error) {
 	path := fmt.Sprintf("/repos/%s/%s/pulls", org, repo)
 
 	requestBody := struct {
@@ -19,7 +22,7 @@ func (c *Client) CreatePullRequestFromIssue(org, repo, head string, number int) 
 		Base:  "master",
 	}
 	var pr PullRequest
-	if err := c.post(path, requestBody, &pr); err != nil {
+	if err := c.post(ctx, path, requestBody, &pr); err != nil {
 		return nil, err
 	}
 

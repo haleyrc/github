@@ -2,11 +2,13 @@ package github
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"time"
 )
 
@@ -15,9 +17,10 @@ import (
 
 const DefaultURL = "https://api.github.com"
 
-func NewClient() *Client {
+func New(token string) *Client {
 	return &Client{
 		HTTPClient: &http.Client{Timeout: 5 * time.Second},
+		Token:      token,
 		URL:        DefaultURL,
 	}
 }
@@ -29,13 +32,17 @@ type Client struct {
 	URL        string
 }
 
-func (c *Client) MustLogin(user, pass, id, secret string) {
-	if err := c.Login(user, pass, id, secret); err != nil {
+func MustLogin(ctx context.Context, user, pass, id, secret string) *Client {
+	client, err := Login(ctx, user, pass, id, secret)
+	if err != nil {
 		panic(err)
 	}
+	return client
 }
 
-func (c *Client) Login(user, pass, id, secret string) error {
+func Login(ctx context.Context, user, pass, id, secret string) (*Client, error) {
+	c := New("")
+
 	path := fmt.Sprintf("/authorizations/clients/%s", id)
 
 	requestBody := struct {
@@ -46,37 +53,37 @@ func (c *Client) Login(user, pass, id, secret string) error {
 		Scopes: []string{"repo"},
 	}
 
-	req, err := c.makeRequest(http.MethodPut, path, requestBody)
+	req, err := c.makeRequest(ctx, http.MethodPut, path, requestBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.SetBasicAuth(user, pass)
 
 	resp, err := c.do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var response struct {
 		Token string `json:"token"`
 	}
 	if err := c.decode(resp, &response); err != nil {
-		return err
+		return nil, err
 	}
 
 	c.Token = response.Token
 
-	return nil
+	return c, nil
 }
 
-func (c *Client) makeRequest(method, path string, body interface{}) (*http.Request, error) {
+func (c *Client) makeRequest(ctx context.Context, method, path string, body interface{}) (*http.Request, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(body); err != nil {
 		return nil, err
 	}
 
 	url := c.URL + path
-	req, err := http.NewRequest(method, url, &buf)
+	req, err := http.NewRequestWithContext(ctx, method, url, &buf)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +131,8 @@ func (c *Client) decode(resp *http.Response, data interface{}) error {
 	return nil
 }
 
-func (c *Client) get(path string, result interface{}) error {
-	req, err := c.makeRequest(http.MethodGet, path, nil)
+func (c *Client) get(ctx context.Context, path string, result interface{}) error {
+	req, err := c.makeRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return err
 	}
@@ -142,8 +149,8 @@ func (c *Client) get(path string, result interface{}) error {
 	return nil
 }
 
-func (c *Client) post(path string, body interface{}, result interface{}) error {
-	req, err := c.makeRequest(http.MethodPost, path, body)
+func (c *Client) post(ctx context.Context, path string, body interface{}, result interface{}) error {
+	req, err := c.makeRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return err
 	}
@@ -162,10 +169,10 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 
 func dumpResponse(resp *http.Response) {
 	b, _ := httputil.DumpResponse(resp, true)
-	fmt.Println(string(b))
+	fmt.Fprintln(os.Stderr, string(b))
 }
 
 func dumpRequest(req *http.Request) {
 	b, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(b))
+	fmt.Fprintln(os.Stderr, string(b))
 }

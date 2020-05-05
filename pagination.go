@@ -5,6 +5,9 @@ import "strings"
 // Link: <https://api.github.com/repositories/172137510/issues?page=2>; rel="next", <https://api.github.com/repositories/172137510/issues?page=40>; rel="last"
 
 func (c *Client) parseLinkHeader(hdr string) map[string]string {
+	if hdr == "" {
+		return nil
+	}
 	links := make(map[string]string)
 	resources := strings.Split(hdr, ", ")
 	for _, resource := range resources {

@@ -1,12 +1,14 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type Issue struct {
-	ID               int        `json:"id"`
+	ID               int64      `json:"id"`
 	NodeID           string     `json:"node_id"`
 	URL              string     `json:"url"`
 	RepositoryURL    string     `json:"repository_url"`
@@ -14,7 +16,7 @@ type Issue struct {
 	CommentsURL      string     `json:"comments_url"`
 	EventsURL        string     `json:"events_url"`
 	HtmlURL          string     `json:"html_url"`
-	Number           int        `json:"number"`
+	Number           int64      `json:"number"`
 	State            string     `json:"state"`
 	Title            string     `json:"title"`
 	Body             string     `json:"body"`
@@ -32,22 +34,52 @@ type Issue struct {
 		DiffURL  string `json:"diff_url"`
 		PatchURL string `json:"patch_url"`
 	} `json:"pull_request"`
-	ClosedAt  *string `json:"closed_at"`
-	CreatedAt string  `json:"created_at"`
-	UpdatedAt string  `json:"updated_at"`
-	ClosedBy  *User   `json:"closed_by"`
+	ClosedAt  *string   `json:"closed_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	ClosedBy  *User     `json:"closed_by"`
 }
 
-// TODO (RCH): Take query params
-func (c *Client) GetIssues(org, repo string) ([]*Issue, error) {
+func NewIssuesService(c *Client) *IssuesService {
+	return &IssuesService{c: c}
+}
+
+type IssuesService struct {
+	c *Client
+}
+
+type GetIssueParams struct {
+	Org    string
+	Repo   string
+	Number string
+}
+
+func (s *IssuesService) GetIssue(ctx context.Context, params GetIssueParams) (*Issue, error) {
+	path := fmt.Sprintf("/repos/%s/%s/issues/%s", params.Org, params.Repo, params.Number)
+
+	var issue Issue
+	if err := s.c.get(ctx, path, &issue); err != nil {
+		return nil, err
+	}
+
+	return &issue, nil
+}
+
+type GetIssuesParams struct {
+	Org  string
+	Repo string
+}
+
+func (s *IssuesService) GetIssues(ctx context.Context, params GetIssuesParams) ([]*Issue, error) {
 	allIssues := make([]*Issue, 0)
-	path := fmt.Sprintf("/repos/%s/%s/issues?status=open", org, repo)
+	path := fmt.Sprintf("/repos/%s/%s/issues?status=open", params.Org, params.Repo)
+
 	for {
-		fmt.Println("Fetching", path)
-		issues, next, err := c.getIssuesFromPath(path)
+		issues, next, err := s.getIssuesFromPath(ctx, path)
 		if err != nil {
 			return nil, err
 		}
+
 		allIssues = append(allIssues, issues...)
 		if next == "" {
 			break
@@ -58,45 +90,23 @@ func (c *Client) GetIssues(org, repo string) ([]*Issue, error) {
 	return allIssues, nil
 }
 
-func (c *Client) getIssuesFromPath(path string) ([]*Issue, string, error) {
-	req, err := c.makeRequest(http.MethodGet, path, nil)
+func (s *IssuesService) getIssuesFromPath(ctx context.Context, path string) ([]*Issue, string, error) {
+	req, err := s.c.makeRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, "", err
 	}
 
-	resp, err := c.do(req)
+	resp, err := s.c.do(req)
 	if err != nil {
 		return nil, "", err
 	}
 
 	var issues []*Issue
-	if err := c.decode(resp, &issues); err != nil {
+	if err := s.c.decode(resp, &issues); err != nil {
 		return nil, "", err
 	}
 
-	links := c.parseLinkHeader(resp.Header.Get("Link"))
+	links := s.c.parseLinkHeader(resp.Header.Get("Link"))
 
 	return issues, links["next"], nil
-}
-
-// func (c *Client) GetIssues(org, repo string) ([]*Issue, error) {
-// 	path := fmt.Sprintf("/repos/%s/%s/issues", org, repo)
-
-// 	var issues []*Issue
-// 	if err := c.get(path, &issues); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return issues, nil
-// }
-
-func (c *Client) GetIssue(org, repo, number string) (*Issue, error) {
-	path := fmt.Sprintf("/repos/%s/%s/issues/%s", org, repo, number)
-
-	var issue Issue
-	if err := c.get(path, &issue); err != nil {
-		return nil, err
-	}
-
-	return &issue, nil
 }
