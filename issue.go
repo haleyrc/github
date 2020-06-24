@@ -40,6 +40,15 @@ type Issue struct {
 	ClosedBy  *User     `json:"closed_by"`
 }
 
+func (i Issue) HasLabel(name string) bool {
+	for _, label := range i.Labels {
+		if label.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func NewIssuesService(c *Client) *IssuesService {
 	return &IssuesService{c: c}
 }
